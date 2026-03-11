@@ -8,7 +8,6 @@ import { useMultiImageLoader } from "../../hooks/useImageLoader";
 import DropZone from "../../components/DropZone";
 import CanvasPreview from "../../components/CanvasPreview";
 import TemplateSelector from "../../components/TemplateSelector";
-import Toolbar from "../../components/Toolbar";
 import ExportButton from "../../components/ExportButton";
 
 function EditorContent() {
@@ -23,7 +22,6 @@ function EditorContent() {
   const images = useMultiImageLoader(files);
   const [crops, setCrops] = useState<CropState[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
-  const [format, setFormat] = useState<"png" | "jpeg">("png");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -54,17 +52,6 @@ function EditorContent() {
       });
     },
     [template.slots]
-  );
-
-  const handleCropChange = useCallback(
-    (crop: CropState) => {
-      setCrops((prev) => {
-        const updated = [...prev];
-        updated[selectedSlot] = crop;
-        return updated;
-      });
-    },
-    [selectedSlot]
   );
 
   const handleCropChangeByIndex = useCallback(
@@ -142,12 +129,6 @@ function EditorContent() {
     setSelectedSlot(0);
   };
 
-  const currentCrop = crops[selectedSlot] || {
-    scale: 1,
-    offsetX: 0.5,
-    offsetY: 0.5,
-  };
-
   return (
     <div className="flex min-h-screen flex-col items-center px-4 pb-12 pt-6">
       {/* Header */}
@@ -213,20 +194,8 @@ function EditorContent() {
           currentCount={files.length}
         />
 
-        {/* Toolbar */}
-        <Toolbar
-          selectedSlot={selectedSlot}
-          totalSlots={template.slots}
-          crop={currentCrop}
-          onCropChange={handleCropChange}
-          onSlotSelect={setSelectedSlot}
-          format={format}
-          onFormatChange={setFormat}
-          hasImage={!!images[selectedSlot]}
-        />
-
         {/* Export */}
-        <ExportButton mode={mode} format={format} canvasRef={canvasRef} />
+        <ExportButton mode={mode} canvasRef={canvasRef} />
       </div>
     </div>
   );

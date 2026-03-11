@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { useCollageRenderer } from "../hooks/useCanvasRenderer";
 import { LayoutPreset, LayoutTemplate, CropState } from "../lib/types";
 import { GAP_PX } from "../lib/constants";
@@ -46,6 +46,12 @@ function hitTestSlot(
   return -1;
 }
 
+function getTouchDistance(t1: Touch, t2: Touch): number {
+  const dx = t1.clientX - t2.clientX;
+  const dy = t1.clientY - t2.clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
 export default function CanvasPreview({
   images,
   preset,
@@ -65,6 +71,7 @@ export default function CanvasPreview({
 
   useCollageRenderer(ref, images, preset, template, crops);
 
+  // Single-finger drag state
   const dragState = useRef<{
     slotIndex: number;
     startX: number;
@@ -73,6 +80,13 @@ export default function CanvasPreview({
     startOffsetY: number;
     moved: boolean;
     isCropDrag: boolean;
+  } | null>(null);
+
+  // Pinch-to-zoom state
+  const pinchState = useRef<{
+    slotIndex: number;
+    initialDistance: number;
+    initialScale: number;
   } | null>(null);
 
   const handlePointerDown = useCallback(
@@ -113,6 +127,9 @@ export default function CanvasPreview({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
+      // Skip if pinch is active
+      if (pinchState.current) return;
+
       const ds = dragState.current;
       const canvas = ref.current;
       if (!ds || !canvas) return;
@@ -190,6 +207,71 @@ export default function CanvasPreview({
     dragState.current = null;
   }, [swapSource, onSlotSelect, onSwapSlots]);
 
+  // Pinch-to-zoom via touch events
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        // Cancel single-finger drag
+        dragState.current = null;
+
+        const slot = selectedSlot;
+        if (images[slot] == null) return;
+
+        const crop = crops[slot] || { scale: 1, offsetX: 0.5, offsetY: 0.5 };
+        const dist = getTouchDistance(e.touches[0], e.touches[1]);
+
+        pinchState.current = {
+          slotIndex: slot,
+          initialDistance: dist,
+          initialScale: crop.scale,
+        };
+
+        e.preventDefault();
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const ps = pinchState.current;
+      if (!ps || e.touches.length < 2) return;
+
+      e.preventDefault();
+
+      const dist = getTouchDistance(e.touches[0], e.touches[1]);
+      const ratio = dist / ps.initialDistance;
+      const newScale = Math.max(1, Math.min(3, ps.initialScale * ratio));
+
+      const crop = crops[ps.slotIndex] || {
+        scale: 1,
+        offsetX: 0.5,
+        offsetY: 0.5,
+      };
+
+      onCropChange(ps.slotIndex, {
+        ...crop,
+        scale: Math.round(newScale * 10) / 10,
+      });
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        pinchState.current = null;
+      }
+    };
+
+    canvas.addEventListener("touchstart", onTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+    canvas.addEventListener("touchend", onTouchEnd);
+
+    return () => {
+      canvas.removeEventListener("touchstart", onTouchStart);
+      canvas.removeEventListener("touchmove", onTouchMove);
+      canvas.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [ref, selectedSlot, images, crops, onCropChange]);
+
   const handleSwapModeToggle = useCallback(() => {
     if (swapSource !== null) {
       setSwapSource(null);
@@ -197,6 +279,29 @@ export default function CanvasPreview({
       setSwapSource(selectedSlot);
     }
   }, [swapSource, selectedSlot]);
+
+  // Mouse wheel zoom
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      const canvas = ref.current;
+      if (!canvas) return;
+
+      const slot = hitTestSlot(e.clientX, e.clientY, canvas, preset, template);
+      if (slot < 0 || !images[slot]) return;
+
+      e.preventDefault();
+
+      const crop = crops[slot] || { scale: 1, offsetX: 0.5, offsetY: 0.5 };
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const newScale = Math.max(1, Math.min(3, crop.scale + delta));
+
+      onCropChange(slot, {
+        ...crop,
+        scale: Math.round(newScale * 10) / 10,
+      });
+    },
+    [ref, preset, template, images, crops, onCropChange]
+  );
 
   const aspectRatio = preset.width / preset.height;
   const maxDisplayHeight = preset.mode === "story" ? 500 : 400;
@@ -217,6 +322,7 @@ export default function CanvasPreview({
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onWheel={handleWheel}
           style={{
             width: `${displayWidth}px`,
             height: `${displayHeight}px`,
@@ -263,11 +369,11 @@ export default function CanvasPreview({
       {/* Crop hint */}
       {images[selectedSlot] && !swapSource && (
         <p className="text-[11px] text-gray-400">
-          選択中の画像をドラッグで位置調整
+          ドラッグで位置調整 ・ ピンチで拡大縮小
         </p>
       )}
 
-      {/* Action bar - Apple style icon buttons */}
+      {/* Action bar */}
       <div className="flex items-center gap-1.5">
         {/* Replace image */}
         {images[selectedSlot] && (

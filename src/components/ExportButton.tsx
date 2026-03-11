@@ -6,17 +6,16 @@ import { LayoutMode } from "../lib/types";
 
 interface ExportButtonProps {
   mode: LayoutMode;
-  format: "png" | "jpeg";
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
 export default function ExportButton({
   mode,
-  format,
   canvasRef,
 }: ExportButtonProps) {
   const [saved, setSaved] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [format, setFormat] = useState<"png" | "jpeg">("jpeg");
 
   const handleExport = async () => {
     if (!canvasRef.current) return;
@@ -26,43 +25,56 @@ export default function ExportButton({
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const getCanvasBlob = (): Promise<Blob | null> => {
-    if (!canvasRef.current) return Promise.resolve(null);
-    const mimeType = format === "png" ? "image/png" : "image/jpeg";
-    return new Promise((resolve) =>
-      canvasRef.current!.toBlob(resolve, mimeType, 0.95)
-    );
-  };
-
   const handleShareToInstagram = async () => {
     if (!canvasRef.current) return;
     setSharing(true);
 
     try {
-      const blob = await getCanvasBlob();
+      const canvas = canvasRef.current;
+      const mimeType = format === "png" ? "image/png" : "image/jpeg";
+      const ext = format === "png" ? "png" : "jpg";
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, mimeType, 0.95)
+      );
       if (!blob) return;
 
-      const ext = format === "png" ? "png" : "jpg";
-      const mimeType = format === "png" ? "image/png" : "image/jpeg";
       const file = new File([blob], `insta_${mode}.${ext}`, { type: mimeType });
 
-      // Web Share API — passes the image file directly to selected app
-      // When user picks Instagram/Instagram Stories, the image is pre-loaded
+      // Try Web Share API (works on mobile browsers)
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file] });
+        await navigator.share({
+          files: [file],
+          title: "Instagram投稿用画像",
+        });
         return;
       }
 
-      // Fallback: save image + open Instagram
+      // Fallback: download image, then try to open Instagram
       await handleExport();
-      window.location.href = "instagram://";
-      setTimeout(() => {
-        // If still here after 2s, app probably not installed
+
+      // Try Instagram deep link with a short delay
+      const timeout = setTimeout(() => {
+        // If we're still here, the app didn't open — open web Instagram
         window.open("https://www.instagram.com/", "_blank");
-      }, 2000);
+      }, 1500);
+
+      // Try opening Instagram app
+      const link = document.createElement("a");
+      link.href = "instagram://app";
+      link.click();
+
+      // If the app opens, page will blur — cancel the web fallback
+      const onBlur = () => {
+        clearTimeout(timeout);
+        window.removeEventListener("blur", onBlur);
+      };
+      window.addEventListener("blur", onBlur);
+
+      // Clean up listener after timeout
+      setTimeout(() => window.removeEventListener("blur", onBlur), 2000);
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
-        // Share failed — fallback to save
         await handleExport();
       }
     } finally {
@@ -72,6 +84,32 @@ export default function ExportButton({
 
   return (
     <div className="flex flex-col gap-2">
+      {/* Format toggle */}
+      <div className="flex items-center justify-center gap-2">
+        <div className="flex overflow-hidden rounded-full bg-gray-100">
+          <button
+            onClick={() => setFormat("jpeg")}
+            className={`px-4 py-1.5 text-xs font-medium transition-all ${
+              format === "jpeg"
+                ? "bg-[var(--pink)] text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            JPG
+          </button>
+          <button
+            onClick={() => setFormat("png")}
+            className={`px-4 py-1.5 text-xs font-medium transition-all ${
+              format === "png"
+                ? "bg-[var(--pink)] text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            PNG
+          </button>
+        </div>
+      </div>
+
       {/* Save button */}
       <button
         onClick={handleExport}
@@ -81,7 +119,7 @@ export default function ExportButton({
         {saved ? "保存しました" : "保存する"}
       </button>
 
-      {/* Instagram share — uses OS share sheet which allows picking Instagram/Stories directly */}
+      {/* Instagram share */}
       <button
         onClick={handleShareToInstagram}
         disabled={sharing}
