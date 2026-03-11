@@ -19,10 +19,10 @@ export default function TemplateSelector({
         <button
           key={t.id}
           onClick={() => onSelect(t)}
-          className={`relative h-14 w-14 overflow-hidden rounded-xl border-2 p-1.5 transition-all ${
+          className={`relative h-14 w-14 overflow-hidden rounded-xl border-2 p-1.5 transition-all active:scale-95 ${
             selectedId === t.id
-              ? "border-white/50 bg-white/10"
-              : "border-transparent bg-white/[0.04] hover:bg-white/[0.08]"
+              ? "border-[var(--pink)] bg-[var(--pink-subtle)]"
+              : "border-transparent bg-gray-50 hover:bg-gray-100"
           }`}
           title={t.label}
         >
@@ -35,11 +35,8 @@ export default function TemplateSelector({
                 width={r[2] * 100 - 3}
                 height={r[3] * 100 - 3}
                 rx={4}
-                className={
-                  selectedId === t.id
-                    ? "fill-white/25 stroke-white/50"
-                    : "fill-white/8 stroke-white/20"
-                }
+                fill={selectedId === t.id ? "rgba(232,99,138,0.2)" : "rgba(0,0,0,0.06)"}
+                stroke={selectedId === t.id ? "rgba(232,99,138,0.6)" : "rgba(0,0,0,0.12)"}
                 strokeWidth={1.5}
               />
             ))}

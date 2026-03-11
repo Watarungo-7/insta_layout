@@ -59,29 +59,31 @@ export default function DropZone({
         setDragActive(false);
       }}
       onClick={() => inputRef.current?.click()}
-      className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-5 transition-all ${
+      className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 transition-all active:scale-[0.98] ${
         dragActive
-          ? "border-white/40 bg-white/[0.06]"
-          : "border-white/10 hover:border-white/25 hover:bg-white/[0.03]"
+          ? "border-[var(--pink)] bg-[var(--pink-bg)]"
+          : "border-gray-200 bg-white hover:border-[var(--pink-light)] hover:bg-[var(--pink-subtle)]"
       }`}
     >
-      <svg
-        className="mb-2 h-8 w-8 text-gray-500"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-        />
-      </svg>
-      <p className="mb-0.5 text-sm font-medium text-gray-300">
-        タップして画像を追加
+      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--pink-bg)]">
+        <svg
+          className="h-5 w-5 text-[var(--pink)]"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+      </div>
+      <p className="text-sm font-medium text-gray-600">
+        画像を追加
       </p>
-      <p className="text-xs text-gray-500">
+      <p className="text-[11px] text-gray-400">
         残り {remaining} 枚
       </p>
       <input

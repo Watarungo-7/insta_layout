@@ -119,6 +119,23 @@ function EditorContent() {
     []
   );
 
+  const handleDeleteImage = useCallback(
+    (slotIndex: number) => {
+      setFiles((prev) => {
+        const updated = [...prev];
+        updated.splice(slotIndex, 1);
+        return updated;
+      });
+      setCrops((prev) => {
+        const updated = [...prev];
+        updated.splice(slotIndex, 1);
+        return updated;
+      });
+      setSelectedSlot((prev) => (prev >= slotIndex && prev > 0 ? prev - 1 : prev));
+    },
+    []
+  );
+
   const handleReset = () => {
     setFiles([]);
     setCrops([]);
@@ -137,14 +154,14 @@ function EditorContent() {
       <div className="mb-5 flex w-full max-w-lg items-center justify-between">
         <button
           onClick={() => router.push("/")}
-          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="text-center">
-          <h1 className="text-sm font-semibold text-white">
+          <h1 className="text-sm font-semibold text-gray-900">
             {preset.label}
           </h1>
           <span className="text-[10px] text-gray-500">
@@ -154,7 +171,7 @@ function EditorContent() {
         {files.length > 0 ? (
           <button
             onClick={handleReset}
-            className="rounded-full px-3 py-1 text-xs text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+            className="rounded-full px-3 py-1 text-xs text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             リセット
           </button>
@@ -165,7 +182,7 @@ function EditorContent() {
 
       <div className="flex w-full max-w-lg flex-col gap-4">
         {/* Template selector */}
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3.5">
+        <div className="rounded-2xl bg-white p-3.5 shadow-sm">
           <p className="mb-2.5 text-xs font-medium text-gray-400">レイアウト</p>
           <TemplateSelector
             templates={templates}
@@ -186,6 +203,7 @@ function EditorContent() {
           onCropChange={handleCropChangeByIndex}
           onSwapSlots={handleSwapSlots}
           onReplaceImage={handleReplaceImage}
+          onDeleteImage={handleDeleteImage}
         />
 
         {/* Drop zone */}

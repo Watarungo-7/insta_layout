@@ -16,6 +16,7 @@ interface CanvasPreviewProps {
   onCropChange: (index: number, crop: CropState) => void;
   onSwapSlots: (a: number, b: number) => void;
   onReplaceImage: (slotIndex: number) => void;
+  onDeleteImage?: (slotIndex: number) => void;
 }
 
 function hitTestSlot(
@@ -56,6 +57,7 @@ export default function CanvasPreview({
   onCropChange,
   onSwapSlots,
   onReplaceImage,
+  onDeleteImage,
 }: CanvasPreviewProps) {
   const internalRef = useRef<HTMLCanvasElement>(null);
   const ref = externalRef || internalRef;
@@ -70,7 +72,7 @@ export default function CanvasPreview({
     startOffsetX: number;
     startOffsetY: number;
     moved: boolean;
-    isCropDrag: boolean; // true = dragging on already-selected slot
+    isCropDrag: boolean;
   } | null>(null);
 
   const handlePointerDown = useCallback(
@@ -100,8 +102,6 @@ export default function CanvasPreview({
         isCropDrag,
       };
 
-      // Capture pointer immediately for crop drags (prevents scroll)
-      // For non-crop touches, let browser handle scroll
       if (isCropDrag || e.pointerType === "mouse") {
         canvas.setPointerCapture(e.pointerId);
       }
@@ -118,7 +118,6 @@ export default function CanvasPreview({
       const dx = e.clientX - ds.startX;
       const dy = e.clientY - ds.startY;
 
-      // Non-crop touch drag: don't interfere with scrolling
       if (!ds.isCropDrag && e.pointerType === "touch") {
         if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
           dragState.current = null;
@@ -208,7 +207,7 @@ export default function CanvasPreview({
   return (
     <div className="flex flex-col items-center gap-3">
       <div
-        className="relative overflow-hidden rounded-2xl shadow-xl"
+        className="relative overflow-hidden rounded-2xl shadow-lg"
         style={{ width: `${displayWidth}px`, height: `${displayHeight}px` }}
       >
         <canvas
@@ -226,61 +225,88 @@ export default function CanvasPreview({
         {/* Selected slot highlight */}
         {template.regions[selectedSlot] && (
           <div
-            className="pointer-events-none absolute rounded-sm border-2 border-white/50"
+            className="pointer-events-none absolute"
             style={{
               left: `${template.regions[selectedSlot][0] * displayWidth}px`,
               top: `${template.regions[selectedSlot][1] * displayHeight}px`,
               width: `${template.regions[selectedSlot][2] * displayWidth}px`,
               height: `${template.regions[selectedSlot][3] * displayHeight}px`,
-              boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
+              border: "2px solid rgba(232,99,138,0.6)",
+              borderRadius: "2px",
             }}
           />
         )}
         {/* Swap source highlight */}
         {swapSource !== null && template.regions[swapSource] && (
           <div
-            className="pointer-events-none absolute border-2 border-dashed border-amber-300/80"
+            className="pointer-events-none absolute border-2 border-dashed"
             style={{
               left: `${template.regions[swapSource][0] * displayWidth}px`,
               top: `${template.regions[swapSource][1] * displayHeight}px`,
               width: `${template.regions[swapSource][2] * displayWidth}px`,
               height: `${template.regions[swapSource][3] * displayHeight}px`,
+              borderColor: "var(--pink)",
             }}
           >
-            <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
+            <span
+              className="absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+              style={{ background: "var(--pink)" }}
+            >
               移動元
             </span>
           </div>
         )}
       </div>
 
-      {/* Crop hint for selected slot */}
+      {/* Crop hint */}
       {images[selectedSlot] && !swapSource && (
-        <p className="text-xs text-gray-500">
+        <p className="text-[11px] text-gray-400">
           選択中の画像をドラッグで位置調整
         </p>
       )}
 
-      {/* Action buttons */}
-      <div className="flex gap-2">
+      {/* Action bar - Apple style icon buttons */}
+      <div className="flex items-center gap-1.5">
+        {/* Replace image */}
         {images[selectedSlot] && (
           <button
             onClick={() => onReplaceImage(selectedSlot)}
-            className="rounded-full border border-gray-700 bg-gray-800/80 px-4 py-1.5 text-sm text-gray-300 backdrop-blur transition-colors hover:border-gray-500 hover:text-white"
+            className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-xs font-medium text-gray-600 shadow-sm transition-all hover:shadow-md active:scale-95"
           >
-            画像を変更
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            変更
           </button>
         )}
+
+        {/* Swap */}
         {hasMultipleImages && (
           <button
             onClick={handleSwapModeToggle}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium shadow-sm transition-all hover:shadow-md active:scale-95 ${
               swapSource !== null
-                ? "border border-amber-400 bg-amber-400/20 text-amber-300 hover:bg-amber-400/30"
-                : "border border-gray-700 bg-gray-800/80 text-gray-300 backdrop-blur hover:border-gray-500 hover:text-white"
+                ? "text-white"
+                : "bg-white text-gray-600"
             }`}
+            style={swapSource !== null ? { background: "var(--pink)" } : undefined}
           >
-            {swapSource !== null ? "タップで入替 / キャンセル" : "並び替え"}
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            {swapSource !== null ? "タップで入替" : "並び替え"}
+          </button>
+        )}
+
+        {/* Delete image */}
+        {images[selectedSlot] && onDeleteImage && (
+          <button
+            onClick={() => onDeleteImage(selectedSlot)}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm transition-all hover:text-red-400 hover:shadow-md active:scale-95"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
           </button>
         )}
       </div>
