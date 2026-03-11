@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { useCollageRenderer } from "../hooks/useCanvasRenderer";
 import { LayoutPreset, LayoutTemplate, CropState } from "../lib/types";
 import { GAP_PX } from "../lib/constants";
@@ -14,7 +14,7 @@ interface CanvasPreviewProps {
   selectedSlot: number;
   onSlotSelect: (index: number) => void;
   onCropChange: (index: number, crop: CropState) => void;
-  onReplaceImage: (slotIndex: number) => void;
+  onSwapSlots: (a: number, b: number) => void;
 }
 
 function hitTestSlot(
@@ -53,10 +53,11 @@ export default function CanvasPreview({
   selectedSlot,
   onSlotSelect,
   onCropChange,
-  onReplaceImage,
+  onSwapSlots,
 }: CanvasPreviewProps) {
   const internalRef = useRef<HTMLCanvasElement>(null);
   const ref = externalRef || internalRef;
+  const [swapSource, setSwapSource] = useState<number | null>(null);
 
   useCollageRenderer(ref, images, preset, template, crops);
 
@@ -74,7 +75,13 @@ export default function CanvasPreview({
       const canvas = ref.current;
       if (!canvas) return;
 
-      const slot = hitTestSlot(e.clientX, e.clientY, canvas, preset, template);
+      const slot = hitTestSlot(
+        e.clientX,
+        e.clientY,
+        canvas,
+        preset,
+        template
+      );
       if (slot < 0) return;
 
       const crop = crops[slot] || { scale: 1, offsetX: 0.5, offsetY: 0.5 };
@@ -87,10 +94,9 @@ export default function CanvasPreview({
         moved: false,
       };
 
-      onSlotSelect(slot);
       canvas.setPointerCapture(e.pointerId);
     },
-    [ref, preset, template, crops, onSlotSelect]
+    [ref, preset, template, crops]
   );
 
   const handlePointerMove = useCallback(
@@ -145,13 +151,45 @@ export default function CanvasPreview({
   );
 
   const handlePointerUp = useCallback(() => {
+    const ds = dragState.current;
+    if (!ds) return;
+
+    // Only handle tap (not drag) for slot selection / swap
+    if (!ds.moved) {
+      const slot = ds.slotIndex;
+      if (swapSource === null) {
+        // First tap: select this slot
+        onSlotSelect(slot);
+      } else if (swapSource === slot) {
+        // Tapped same slot again: cancel swap mode
+        setSwapSource(null);
+        onSlotSelect(slot);
+      } else {
+        // Second tap on different slot: swap!
+        onSwapSlots(swapSource, slot);
+        setSwapSource(null);
+        onSlotSelect(slot);
+      }
+    }
+
     dragState.current = null;
-  }, []);
+  }, [swapSource, onSlotSelect, onSwapSlots]);
+
+  const handleSwapModeToggle = useCallback(() => {
+    if (swapSource !== null) {
+      setSwapSource(null);
+    } else {
+      setSwapSource(selectedSlot);
+    }
+  }, [swapSource, selectedSlot]);
 
   const aspectRatio = preset.width / preset.height;
   const maxDisplayHeight = preset.mode === "story" ? 500 : 400;
   const displayHeight = maxDisplayHeight;
   const displayWidth = displayHeight * aspectRatio;
+
+  const hasMultipleImages =
+    images.filter((img) => img !== null).length >= 2;
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -183,15 +221,37 @@ export default function CanvasPreview({
             }}
           />
         )}
+        {/* Swap source highlight */}
+        {swapSource !== null && template.regions[swapSource] && (
+          <div
+            className="pointer-events-none absolute border-2 border-dashed border-yellow-400/80"
+            style={{
+              left: `${template.regions[swapSource][0] * displayWidth}px`,
+              top: `${template.regions[swapSource][1] * displayHeight}px`,
+              width: `${template.regions[swapSource][2] * displayWidth}px`,
+              height: `${template.regions[swapSource][3] * displayHeight}px`,
+            }}
+          >
+            <span className="absolute left-1 top-1 rounded bg-yellow-400/90 px-1.5 py-0.5 text-xs font-bold text-black">
+              入替元
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Replace button */}
-      {images[selectedSlot] && (
+      {/* Swap mode button */}
+      {hasMultipleImages && (
         <button
-          onClick={() => onReplaceImage(selectedSlot)}
-          className="rounded-lg bg-gray-800 px-4 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-700 hover:text-white"
+          onClick={handleSwapModeToggle}
+          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+            swapSource !== null
+              ? "bg-yellow-500 text-black hover:bg-yellow-400"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+          }`}
         >
-          画像 {selectedSlot + 1} を入れ替え
+          {swapSource !== null
+            ? `画像 ${swapSource + 1} の入替先をタップ（キャンセル）`
+            : "画像を入れ替え"}
         </button>
       )}
     </div>

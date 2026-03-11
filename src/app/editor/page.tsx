@@ -78,28 +78,18 @@ function EditorContent() {
     []
   );
 
-  const handleReplaceImage = useCallback(
-    (slotIndex: number) => {
-      // Open file picker and replace the image at slotIndex
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = "image/*";
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          setFiles((prev) => {
-            const updated = [...prev];
-            updated[slotIndex] = file;
-            return updated;
-          });
-          setCrops((prev) => {
-            const updated = [...prev];
-            updated[slotIndex] = { scale: 1, offsetX: 0.5, offsetY: 0.5 };
-            return updated;
-          });
-        }
-      };
-      input.click();
+  const handleSwapSlots = useCallback(
+    (a: number, b: number) => {
+      setFiles((prev) => {
+        const updated = [...prev];
+        [updated[a], updated[b]] = [updated[b], updated[a]];
+        return updated;
+      });
+      setCrops((prev) => {
+        const updated = [...prev];
+        [updated[a], updated[b]] = [updated[b], updated[a]];
+        return updated;
+      });
     },
     []
   );
@@ -164,7 +154,7 @@ function EditorContent() {
           selectedSlot={selectedSlot}
           onSlotSelect={setSelectedSlot}
           onCropChange={handleCropChangeByIndex}
-          onReplaceImage={handleReplaceImage}
+          onSwapSlots={handleSwapSlots}
         />
 
         {/* Drop zone for adding images */}
