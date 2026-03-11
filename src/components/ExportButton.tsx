@@ -14,10 +14,10 @@ export default function ExportButton({
   format,
   canvasRef,
 }: ExportButtonProps) {
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!canvasRef.current) return;
     const ext = format === "png" ? "png" : "jpg";
-    downloadCanvas(canvasRef.current, `insta_${mode}.${ext}`, format);
+    await downloadCanvas(canvasRef.current, `insta_${mode}.${ext}`, format);
   };
 
   return (
@@ -25,7 +25,7 @@ export default function ExportButton({
       onClick={handleExport}
       className="w-full rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700"
     >
-      書き出し ({format.toUpperCase()})
+      画像をダウンロード ({format.toUpperCase()})
     </button>
   );
 }
