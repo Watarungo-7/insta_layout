@@ -22,16 +22,3 @@ export function downloadCanvas(
     quality
   );
 }
-
-export function downloadMultipleCanvases(
-  canvases: HTMLCanvasElement[],
-  baseName: string,
-  format: "png" | "jpeg" = "png"
-): void {
-  const ext = format === "png" ? "png" : "jpg";
-  canvases.forEach((canvas, i) => {
-    setTimeout(() => {
-      downloadCanvas(canvas, `${baseName}_${i + 1}.${ext}`, format);
-    }, i * 200);
-  });
-}

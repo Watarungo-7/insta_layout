@@ -3,64 +3,70 @@
 import { useState, useRef, useCallback } from "react";
 
 interface DropZoneProps {
-  onImageSelected: (file: File) => void;
+  onImagesSelected: (files: File[]) => void;
+  maxImages: number;
+  currentCount: number;
 }
 
-export default function DropZone({ onImageSelected }: DropZoneProps) {
+export default function DropZone({
+  onImagesSelected,
+  maxImages,
+  currentCount,
+}: DropZoneProps) {
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const remaining = maxImages - currentCount;
 
-  const handleFile = useCallback(
-    (file: File) => {
-      if (file.type.startsWith("image/")) {
-        onImageSelected(file);
+  const handleFiles = useCallback(
+    (fileList: FileList) => {
+      const files = Array.from(fileList)
+        .filter((f) => f.type.startsWith("image/"))
+        .slice(0, remaining);
+      if (files.length > 0) {
+        onImagesSelected(files);
       }
     },
-    [onImageSelected]
+    [onImagesSelected, remaining]
   );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragActive(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+      handleFiles(e.dataTransfer.files);
     },
-    [handleFile]
+    [handleFiles]
   );
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-  }, []);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleFile(file);
+      if (e.target.files) handleFiles(e.target.files);
     },
-    [handleFile]
+    [handleFiles]
   );
+
+  if (remaining <= 0) return null;
 
   return (
     <div
       onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragActive(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        setDragActive(false);
+      }}
       onClick={() => inputRef.current?.click()}
-      className={`flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-colors ${
+      className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 transition-colors ${
         dragActive
           ? "border-blue-500 bg-blue-500/10"
           : "border-gray-600 hover:border-gray-400"
       }`}
     >
       <svg
-        className="mb-4 h-12 w-12 text-gray-500"
+        className="mb-3 h-10 w-10 text-gray-500"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -69,17 +75,20 @@ export default function DropZone({ onImageSelected }: DropZoneProps) {
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={1.5}
-          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          d="M12 4v16m8-8H4"
         />
       </svg>
-      <p className="mb-2 text-lg font-medium text-gray-300">
+      <p className="mb-1 text-base font-medium text-gray-300">
         画像をドラッグ&ドロップ
       </p>
-      <p className="text-sm text-gray-500">またはクリックして選択</p>
+      <p className="text-sm text-gray-500">
+        またはクリックして選択（残り{remaining}枚）
+      </p>
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleChange}
         className="hidden"
       />

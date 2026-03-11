@@ -2,30 +2,41 @@
 
 import { useState, useEffect } from "react";
 
-export function useImageLoader(file: File | null): HTMLImageElement | null {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
+export function useMultiImageLoader(
+  files: File[]
+): (HTMLImageElement | null)[] {
+  const [images, setImages] = useState<(HTMLImageElement | null)[]>([]);
 
   useEffect(() => {
-    if (!file) {
-      setImage(null);
+    if (files.length === 0) {
+      setImages([]);
       return;
     }
 
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      setImage(img);
-      URL.revokeObjectURL(url);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
+    const loaded: (HTMLImageElement | null)[] = new Array(files.length).fill(
+      null
+    );
+    let cancelled = false;
+
+    files.forEach((file, i) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        if (cancelled) return;
+        loaded[i] = img;
+        setImages([...loaded]);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    });
 
     return () => {
-      URL.revokeObjectURL(url);
+      cancelled = true;
     };
-  }, [file]);
+  }, [files]);
 
-  return image;
+  return images;
 }

@@ -1,4 +1,4 @@
-export type LayoutMode = "story" | "feed" | "carousel";
+export type LayoutMode = "story" | "feed" | "post";
 
 export interface LayoutPreset {
   mode: LayoutMode;
@@ -15,6 +15,10 @@ export interface CropState {
   offsetY: number;
 }
 
-export interface CarouselState {
-  slideCount: number;
+export interface LayoutTemplate {
+  id: string;
+  label: string;
+  slots: number;
+  /** Each region is a fraction of the canvas: [x, y, w, h] in 0-1 range */
+  regions: [number, number, number, number][];
 }

@@ -1,26 +1,28 @@
 "use client";
 
 import { useRef } from "react";
-import { useCanvasRenderer } from "../hooks/useCanvasRenderer";
-import { LayoutPreset, CropState } from "../lib/types";
+import { useCollageRenderer } from "../hooks/useCanvasRenderer";
+import { LayoutPreset, LayoutTemplate, CropState } from "../lib/types";
 
 interface CanvasPreviewProps {
-  image: HTMLImageElement;
+  images: (HTMLImageElement | null)[];
   preset: LayoutPreset;
-  crop: CropState;
+  template: LayoutTemplate;
+  crops: CropState[];
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
 export default function CanvasPreview({
-  image,
+  images,
   preset,
-  crop,
+  template,
+  crops,
   canvasRef: externalRef,
 }: CanvasPreviewProps) {
   const internalRef = useRef<HTMLCanvasElement>(null);
   const ref = externalRef || internalRef;
 
-  useCanvasRenderer(ref, image, preset, crop);
+  useCollageRenderer(ref, images, preset, template, crops);
 
   const aspectRatio = preset.width / preset.height;
   const maxDisplayHeight = preset.mode === "story" ? 500 : 400;
