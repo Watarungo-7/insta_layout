@@ -132,36 +132,41 @@ function EditorContent() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center px-4 py-8">
-      <div className="mb-6 flex w-full max-w-4xl items-center justify-between">
+    <div className="flex min-h-screen flex-col items-center px-4 pb-12 pt-6">
+      {/* Header */}
+      <div className="mb-5 flex w-full max-w-lg items-center justify-between">
         <button
           onClick={() => router.push("/")}
-          className="text-sm text-gray-400 transition-colors hover:text-white"
+          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
         >
-          &larr; 戻る
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
         </button>
-        <h1 className="text-xl font-semibold text-white">
-          {preset.label}
-          <span className="ml-2 text-sm font-normal text-gray-500">
+        <div className="text-center">
+          <h1 className="text-sm font-semibold text-white">
+            {preset.label}
+          </h1>
+          <span className="text-[10px] text-gray-500">
             {preset.aspectRatio}
           </span>
-        </h1>
+        </div>
         {files.length > 0 ? (
           <button
             onClick={handleReset}
-            className="text-sm text-gray-400 transition-colors hover:text-white"
+            className="rounded-full px-3 py-1 text-xs text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
           >
             リセット
           </button>
         ) : (
-          <div />
+          <div className="w-14" />
         )}
       </div>
 
-      <div className="flex w-full max-w-4xl flex-col gap-5">
+      <div className="flex w-full max-w-lg flex-col gap-4">
         {/* Template selector */}
-        <div className="rounded-2xl border border-gray-800 bg-gray-900 p-4">
-          <p className="mb-3 text-sm font-medium text-gray-300">レイアウト</p>
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3.5">
+          <p className="mb-2.5 text-xs font-medium text-gray-400">レイアウト</p>
           <TemplateSelector
             templates={templates}
             selectedId={template.id}
@@ -169,7 +174,7 @@ function EditorContent() {
           />
         </div>
 
-        {/* Canvas preview with tap-to-select and drag-to-adjust */}
+        {/* Canvas */}
         <CanvasPreview
           images={images}
           preset={preset}
@@ -183,7 +188,7 @@ function EditorContent() {
           onReplaceImage={handleReplaceImage}
         />
 
-        {/* Drop zone for adding images */}
+        {/* Drop zone */}
         <DropZone
           onImagesSelected={handleImagesSelected}
           maxImages={template.slots}

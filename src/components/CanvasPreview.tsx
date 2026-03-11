@@ -70,6 +70,7 @@ export default function CanvasPreview({
     startOffsetX: number;
     startOffsetY: number;
     moved: boolean;
+    isCropDrag: boolean; // true = dragging on already-selected slot
   } | null>(null);
 
   const handlePointerDown = useCallback(
@@ -87,6 +88,8 @@ export default function CanvasPreview({
       if (slot < 0) return;
 
       const crop = crops[slot] || { scale: 1, offsetX: 0.5, offsetY: 0.5 };
+      const isCropDrag = slot === selectedSlot && images[slot] !== null;
+
       dragState.current = {
         slotIndex: slot,
         startX: e.clientX,
@@ -94,14 +97,16 @@ export default function CanvasPreview({
         startOffsetX: crop.offsetX,
         startOffsetY: crop.offsetY,
         moved: false,
+        isCropDrag,
       };
 
-      // Only capture pointer for mouse — let touch scroll through by default
-      if (e.pointerType === "mouse") {
+      // Capture pointer immediately for crop drags (prevents scroll)
+      // For non-crop touches, let browser handle scroll
+      if (isCropDrag || e.pointerType === "mouse") {
         canvas.setPointerCapture(e.pointerId);
       }
     },
-    [ref, preset, template, crops]
+    [ref, preset, template, crops, selectedSlot, images]
   );
 
   const handlePointerMove = useCallback(
@@ -113,13 +118,12 @@ export default function CanvasPreview({
       const dx = e.clientX - ds.startX;
       const dy = e.clientY - ds.startY;
 
-      // For touch: if vertical movement dominates, let the browser scroll
-      if (!ds.moved && e.pointerType === "touch") {
-        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx) * 1.5) {
-          // Vertical scroll intent — abort drag entirely
+      // Non-crop touch drag: don't interfere with scrolling
+      if (!ds.isCropDrag && e.pointerType === "touch") {
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
           dragState.current = null;
-          return;
         }
+        return;
       }
 
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
@@ -127,15 +131,6 @@ export default function CanvasPreview({
       }
 
       if (!ds.moved) return;
-
-      // Once we commit to a crop drag, capture the pointer to prevent scroll
-      if (e.pointerType === "touch") {
-        try {
-          canvas.setPointerCapture(e.pointerId);
-        } catch {
-          // ignore if already captured
-        }
-      }
 
       const rect = canvas.getBoundingClientRect();
       const region = template.regions[ds.slotIndex];
@@ -177,18 +172,14 @@ export default function CanvasPreview({
     const ds = dragState.current;
     if (!ds) return;
 
-    // Only handle tap (not drag) for slot selection / swap
     if (!ds.moved) {
       const slot = ds.slotIndex;
       if (swapSource === null) {
-        // First tap: select this slot
         onSlotSelect(slot);
       } else if (swapSource === slot) {
-        // Tapped same slot again: cancel swap mode
         setSwapSource(null);
         onSlotSelect(slot);
       } else {
-        // Second tap on different slot: swap!
         onSwapSlots(swapSource, slot);
         setSwapSource(null);
         onSlotSelect(slot);
@@ -217,7 +208,7 @@ export default function CanvasPreview({
   return (
     <div className="flex flex-col items-center gap-3">
       <div
-        className="relative"
+        className="relative overflow-hidden rounded-2xl shadow-xl"
         style={{ width: `${displayWidth}px`, height: `${displayHeight}px` }}
       >
         <canvas
@@ -230,24 +221,25 @@ export default function CanvasPreview({
             height: `${displayHeight}px`,
             touchAction: "pan-y",
           }}
-          className="cursor-grab rounded-lg shadow-lg active:cursor-grabbing"
+          className="cursor-grab active:cursor-grabbing"
         />
         {/* Selected slot highlight */}
         {template.regions[selectedSlot] && (
           <div
-            className="pointer-events-none absolute border-2 border-blue-500/70"
+            className="pointer-events-none absolute rounded-sm border-2 border-white/50"
             style={{
               left: `${template.regions[selectedSlot][0] * displayWidth}px`,
               top: `${template.regions[selectedSlot][1] * displayHeight}px`,
               width: `${template.regions[selectedSlot][2] * displayWidth}px`,
               height: `${template.regions[selectedSlot][3] * displayHeight}px`,
+              boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
             }}
           />
         )}
         {/* Swap source highlight */}
         {swapSource !== null && template.regions[swapSource] && (
           <div
-            className="pointer-events-none absolute border-2 border-dashed border-yellow-400/80"
+            className="pointer-events-none absolute border-2 border-dashed border-amber-300/80"
             style={{
               left: `${template.regions[swapSource][0] * displayWidth}px`,
               top: `${template.regions[swapSource][1] * displayHeight}px`,
@@ -255,35 +247,40 @@ export default function CanvasPreview({
               height: `${template.regions[swapSource][3] * displayHeight}px`,
             }}
           >
-            <span className="absolute left-1 top-1 rounded bg-yellow-400/90 px-1.5 py-0.5 text-xs font-bold text-black">
-              入替元
+            <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
+              移動元
             </span>
           </div>
         )}
       </div>
+
+      {/* Crop hint for selected slot */}
+      {images[selectedSlot] && !swapSource && (
+        <p className="text-xs text-gray-500">
+          選択中の画像をドラッグで位置調整
+        </p>
+      )}
 
       {/* Action buttons */}
       <div className="flex gap-2">
         {images[selectedSlot] && (
           <button
             onClick={() => onReplaceImage(selectedSlot)}
-            className="rounded-lg bg-gray-800 px-4 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-700 hover:text-white"
+            className="rounded-full border border-gray-700 bg-gray-800/80 px-4 py-1.5 text-sm text-gray-300 backdrop-blur transition-colors hover:border-gray-500 hover:text-white"
           >
-            画像 {selectedSlot + 1} を変更
+            画像を変更
           </button>
         )}
         {hasMultipleImages && (
           <button
             onClick={handleSwapModeToggle}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               swapSource !== null
-                ? "bg-yellow-500 text-black hover:bg-yellow-400"
-                : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+                ? "border border-amber-400 bg-amber-400/20 text-amber-300 hover:bg-amber-400/30"
+                : "border border-gray-700 bg-gray-800/80 text-gray-300 backdrop-blur hover:border-gray-500 hover:text-white"
             }`}
           >
-            {swapSource !== null
-              ? `入替先をタップ（キャンセル）`
-              : "並び替え"}
+            {swapSource !== null ? "タップで入替 / キャンセル" : "並び替え"}
           </button>
         )}
       </div>

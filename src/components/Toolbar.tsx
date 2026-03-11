@@ -24,31 +24,36 @@ export default function Toolbar({
   hasImage,
 }: ToolbarProps) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-gray-800 bg-gray-900 p-4">
+    <div className="flex flex-col gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
       {/* Slot selector */}
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-300">画像:</span>
-        {Array.from({ length: totalSlots }, (_, i) => (
-          <button
-            key={i}
-            onClick={() => onSlotSelect(i)}
-            className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
-              selectedSlot === i
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-400 hover:text-white"
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
+        <span className="text-xs font-medium text-gray-400">画像</span>
+        <div className="flex gap-1.5">
+          {Array.from({ length: totalSlots }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => onSlotSelect(i)}
+              className={`h-8 w-8 rounded-full text-xs font-medium transition-all ${
+                selectedSlot === i
+                  ? "bg-white text-black shadow-sm"
+                  : "bg-white/[0.06] text-gray-400 hover:bg-white/10 hover:text-gray-200"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
       </div>
 
       {hasImage && (
-        <>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-300">
-              ズーム: {crop.scale.toFixed(1)}x
-            </label>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-gray-400">ズーム</label>
+              <span className="text-xs tabular-nums text-gray-500">
+                {crop.scale.toFixed(1)}x
+              </span>
+            </div>
             <input
               type="range"
               min="1"
@@ -58,14 +63,12 @@ export default function Toolbar({
               onChange={(e) =>
                 onCropChange({ ...crop, scale: parseFloat(e.target.value) })
               }
-              className="w-full accent-blue-500"
+              className="w-full"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-300">
-              横位置
-            </label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs text-gray-400">横位置</label>
             <input
               type="range"
               min="0"
@@ -78,14 +81,12 @@ export default function Toolbar({
                   offsetX: parseFloat(e.target.value),
                 })
               }
-              className="w-full accent-blue-500"
+              className="w-full"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-300">
-              縦位置
-            </label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs text-gray-400">縦位置</label>
             <input
               type="range"
               min="0"
@@ -98,34 +99,36 @@ export default function Toolbar({
                   offsetY: parseFloat(e.target.value),
                 })
               }
-              className="w-full accent-blue-500"
+              className="w-full"
             />
           </div>
-        </>
+        </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-gray-300">形式:</span>
-        <button
-          onClick={() => onFormatChange("png")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            format === "png"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-800 text-gray-400 hover:text-white"
-          }`}
-        >
-          PNG
-        </button>
-        <button
-          onClick={() => onFormatChange("jpeg")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            format === "jpeg"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-800 text-gray-400 hover:text-white"
-          }`}
-        >
-          JPG
-        </button>
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-gray-400">形式</span>
+        <div className="flex overflow-hidden rounded-full border border-white/[0.08] bg-white/[0.03]">
+          <button
+            onClick={() => onFormatChange("png")}
+            className={`px-3.5 py-1 text-xs font-medium transition-all ${
+              format === "png"
+                ? "bg-white text-black"
+                : "text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            PNG
+          </button>
+          <button
+            onClick={() => onFormatChange("jpeg")}
+            className={`px-3.5 py-1 text-xs font-medium transition-all ${
+              format === "jpeg"
+                ? "bg-white text-black"
+                : "text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            JPG
+          </button>
+        </div>
       </div>
     </div>
   );

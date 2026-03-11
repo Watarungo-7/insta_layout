@@ -14,15 +14,15 @@ export default function TemplateSelector({
   onSelect,
 }: TemplateSelectorProps) {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-2.5">
       {templates.map((t) => (
         <button
           key={t.id}
           onClick={() => onSelect(t)}
-          className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 p-1 transition-all ${
+          className={`relative h-14 w-14 overflow-hidden rounded-xl border-2 p-1.5 transition-all ${
             selectedId === t.id
-              ? "border-blue-500 bg-gray-800"
-              : "border-gray-700 bg-gray-900 hover:border-gray-500"
+              ? "border-white/50 bg-white/10"
+              : "border-transparent bg-white/[0.04] hover:bg-white/[0.08]"
           }`}
           title={t.label}
         >
@@ -30,15 +30,15 @@ export default function TemplateSelector({
             {t.regions.map((r, i) => (
               <rect
                 key={i}
-                x={r[0] * 100 + 1}
-                y={r[1] * 100 + 1}
-                width={r[2] * 100 - 2}
-                height={r[3] * 100 - 2}
-                rx={3}
+                x={r[0] * 100 + 1.5}
+                y={r[1] * 100 + 1.5}
+                width={r[2] * 100 - 3}
+                height={r[3] * 100 - 3}
+                rx={4}
                 className={
                   selectedId === t.id
-                    ? "fill-blue-500/40 stroke-blue-400"
-                    : "fill-gray-700 stroke-gray-500"
+                    ? "fill-white/25 stroke-white/50"
+                    : "fill-white/8 stroke-white/20"
                 }
                 strokeWidth={1.5}
               />

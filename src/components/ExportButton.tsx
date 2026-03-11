@@ -23,9 +23,9 @@ export default function ExportButton({
   return (
     <button
       onClick={handleExport}
-      className="w-full rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700"
+      className="w-full rounded-2xl bg-white px-6 py-3.5 text-sm font-semibold text-black transition-all hover:bg-gray-100 active:scale-[0.98]"
     >
-      画像をダウンロード ({format.toUpperCase()})
+      保存する
     </button>
   );
 }
