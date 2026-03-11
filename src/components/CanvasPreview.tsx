@@ -94,7 +94,10 @@ export default function CanvasPreview({
         moved: false,
       };
 
-      canvas.setPointerCapture(e.pointerId);
+      // Only capture pointer for mouse — let touch scroll through by default
+      if (e.pointerType === "mouse") {
+        canvas.setPointerCapture(e.pointerId);
+      }
     },
     [ref, preset, template, crops]
   );
@@ -108,11 +111,29 @@ export default function CanvasPreview({
       const dx = e.clientX - ds.startX;
       const dy = e.clientY - ds.startY;
 
+      // For touch: if vertical movement dominates, let the browser scroll
+      if (!ds.moved && e.pointerType === "touch") {
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+          // Vertical scroll intent — abort drag entirely
+          dragState.current = null;
+          return;
+        }
+      }
+
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
         ds.moved = true;
       }
 
       if (!ds.moved) return;
+
+      // Once we commit to a crop drag, capture the pointer to prevent scroll
+      if (e.pointerType === "touch") {
+        try {
+          canvas.setPointerCapture(e.pointerId);
+        } catch {
+          // ignore if already captured
+        }
+      }
 
       const rect = canvas.getBoundingClientRect();
       const region = template.regions[ds.slotIndex];
@@ -205,7 +226,7 @@ export default function CanvasPreview({
           style={{
             width: `${displayWidth}px`,
             height: `${displayHeight}px`,
-            touchAction: "none",
+            touchAction: "pan-y",
           }}
           className="cursor-grab rounded-lg shadow-lg active:cursor-grabbing"
         />
