@@ -94,6 +94,31 @@ function EditorContent() {
     []
   );
 
+  const handleReplaceImage = useCallback(
+    (slotIndex: number) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          setFiles((prev) => {
+            const updated = [...prev];
+            updated[slotIndex] = file;
+            return updated;
+          });
+          setCrops((prev) => {
+            const updated = [...prev];
+            updated[slotIndex] = { scale: 1, offsetX: 0.5, offsetY: 0.5 };
+            return updated;
+          });
+        }
+      };
+      input.click();
+    },
+    []
+  );
+
   const handleReset = () => {
     setFiles([]);
     setCrops([]);
@@ -155,6 +180,7 @@ function EditorContent() {
           onSlotSelect={setSelectedSlot}
           onCropChange={handleCropChangeByIndex}
           onSwapSlots={handleSwapSlots}
+          onReplaceImage={handleReplaceImage}
         />
 
         {/* Drop zone for adding images */}

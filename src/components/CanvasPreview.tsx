@@ -15,6 +15,7 @@ interface CanvasPreviewProps {
   onSlotSelect: (index: number) => void;
   onCropChange: (index: number, crop: CropState) => void;
   onSwapSlots: (a: number, b: number) => void;
+  onReplaceImage: (slotIndex: number) => void;
 }
 
 function hitTestSlot(
@@ -54,6 +55,7 @@ export default function CanvasPreview({
   onSlotSelect,
   onCropChange,
   onSwapSlots,
+  onReplaceImage,
 }: CanvasPreviewProps) {
   const internalRef = useRef<HTMLCanvasElement>(null);
   const ref = externalRef || internalRef;
@@ -260,21 +262,31 @@ export default function CanvasPreview({
         )}
       </div>
 
-      {/* Swap mode button */}
-      {hasMultipleImages && (
-        <button
-          onClick={handleSwapModeToggle}
-          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
-            swapSource !== null
-              ? "bg-yellow-500 text-black hover:bg-yellow-400"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
-          }`}
-        >
-          {swapSource !== null
-            ? `画像 ${swapSource + 1} の入替先をタップ（キャンセル）`
-            : "画像を入れ替え"}
-        </button>
-      )}
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        {images[selectedSlot] && (
+          <button
+            onClick={() => onReplaceImage(selectedSlot)}
+            className="rounded-lg bg-gray-800 px-4 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-700 hover:text-white"
+          >
+            画像 {selectedSlot + 1} を変更
+          </button>
+        )}
+        {hasMultipleImages && (
+          <button
+            onClick={handleSwapModeToggle}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+              swapSource !== null
+                ? "bg-yellow-500 text-black hover:bg-yellow-400"
+                : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}
+          >
+            {swapSource !== null
+              ? `入替先をタップ（キャンセル）`
+              : "並び替え"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
