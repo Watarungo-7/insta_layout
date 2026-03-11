@@ -30,7 +30,6 @@ function EditorContent() {
   const handleTemplateChange = useCallback(
     (t: LayoutTemplate) => {
       setTemplate(t);
-      // Reset files and crops if slot count changes
       if (t.slots !== template.slots) {
         setFiles([]);
         setCrops([]);
@@ -66,6 +65,43 @@ function EditorContent() {
       });
     },
     [selectedSlot]
+  );
+
+  const handleCropChangeByIndex = useCallback(
+    (index: number, crop: CropState) => {
+      setCrops((prev) => {
+        const updated = [...prev];
+        updated[index] = crop;
+        return updated;
+      });
+    },
+    []
+  );
+
+  const handleReplaceImage = useCallback(
+    (slotIndex: number) => {
+      // Open file picker and replace the image at slotIndex
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          setFiles((prev) => {
+            const updated = [...prev];
+            updated[slotIndex] = file;
+            return updated;
+          });
+          setCrops((prev) => {
+            const updated = [...prev];
+            updated[slotIndex] = { scale: 1, offsetX: 0.5, offsetY: 0.5 };
+            return updated;
+          });
+        }
+      };
+      input.click();
+    },
+    []
   );
 
   const handleReset = () => {
@@ -110,9 +146,7 @@ function EditorContent() {
       <div className="flex w-full max-w-4xl flex-col gap-5">
         {/* Template selector */}
         <div className="rounded-2xl border border-gray-800 bg-gray-900 p-4">
-          <p className="mb-3 text-sm font-medium text-gray-300">
-            レイアウト
-          </p>
+          <p className="mb-3 text-sm font-medium text-gray-300">レイアウト</p>
           <TemplateSelector
             templates={templates}
             selectedId={template.id}
@@ -120,13 +154,17 @@ function EditorContent() {
           />
         </div>
 
-        {/* Canvas preview */}
+        {/* Canvas preview with tap-to-select and drag-to-adjust */}
         <CanvasPreview
           images={images}
           preset={preset}
           template={template}
           crops={crops}
           canvasRef={canvasRef}
+          selectedSlot={selectedSlot}
+          onSlotSelect={setSelectedSlot}
+          onCropChange={handleCropChangeByIndex}
+          onReplaceImage={handleReplaceImage}
         />
 
         {/* Drop zone for adding images */}
@@ -135,33 +173,6 @@ function EditorContent() {
           maxImages={template.slots}
           currentCount={files.length}
         />
-
-        {/* Image thumbnails */}
-        {files.length > 0 && (
-          <div className="flex gap-2">
-            {files.map((file, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedSlot(i)}
-                className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 transition-all ${
-                  selectedSlot === i
-                    ? "border-blue-500"
-                    : "border-gray-700 hover:border-gray-500"
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={`画像 ${i + 1}`}
-                  className="h-full w-full object-cover"
-                />
-                <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-xs text-white">
-                  {i + 1}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Toolbar */}
         <Toolbar
