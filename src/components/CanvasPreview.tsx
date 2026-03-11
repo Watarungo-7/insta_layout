@@ -102,7 +102,9 @@ export default function CanvasPreview({
         isCropDrag,
       };
 
-      if (isCropDrag || e.pointerType === "mouse") {
+      if (isCropDrag) {
+        canvas.setPointerCapture(e.pointerId);
+      } else if (e.pointerType === "mouse") {
         canvas.setPointerCapture(e.pointerId);
       }
     },
@@ -118,8 +120,8 @@ export default function CanvasPreview({
       const dx = e.clientX - ds.startX;
       const dy = e.clientY - ds.startY;
 
-      if (!ds.isCropDrag && e.pointerType === "touch") {
-        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      if (!ds.isCropDrag) {
+        if (e.pointerType === "touch" && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
           dragState.current = null;
         }
         return;
@@ -218,7 +220,7 @@ export default function CanvasPreview({
           style={{
             width: `${displayWidth}px`,
             height: `${displayHeight}px`,
-            touchAction: "pan-y",
+            touchAction: images[selectedSlot] ? "none" : "pan-y",
           }}
           className="cursor-grab active:cursor-grabbing"
         />
